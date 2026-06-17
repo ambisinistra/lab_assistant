@@ -10,5 +10,9 @@ event_sensor.py (The Monitor) Listens for OS events—specifically active window
 
 lab_agent.py (The Assistant) Subscribes to the ZeroMQ event stream. At startup, it prompts you for your current focus goal. It continually feeds recent desktop events to the local Ollama LLM, which replies with concise affirmations if you are on task, or short nudges if you are distracted. It also accepts manual chat inputs via the terminal so you can interact with the agent directly.
 
+
+
 i3-config-kiosk (Ubunt i3wm X11 setup file) config file to configure UX
+
+sudo apt install thunar xterm
 cp i3-config-kiosk ~/.config/i3/config
