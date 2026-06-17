@@ -1,0 +1,59 @@
+# ============================================================
+# i3 config — Kiosk layout: Thunar (60%) | xterm (40%)
+# ============================================================
+
+set $mod Mod4
+
+font pango:DejaVu Sans Mono 10
+
+# -------------------------------------------------------------
+# Автозапуск двух нужных приложений при старте i3
+# -------------------------------------------------------------
+exec --no-startup-id thunar
+exec --no-startup-id xterm -bg black -fg green -title kiosk-terminal
+
+# -------------------------------------------------------------
+# Правила окон: ВСЁ floating по умолчанию,
+# кроме двух наших основных окон (Thunar, kiosk-terminal)
+# -------------------------------------------------------------
+# Важно: правила в i3 применяются по порядку объявления, и более
+# позднее правило, если оно матчит то же окно, "выигрывает" у более
+# раннего. Поэтому общее правило "всё floating" стоит первым,
+# а исключения для наших двух окон — после него, и именно они
+# финально определяют floating disable для этих окон.
+
+# Шаг 1: всё, что появляется — floating и по центру
+for_window [class=".*"] floating enable, move position center
+
+# Шаг 2: исключения — Thunar и kiosk-terminal всегда tiling
+for_window [class="Thunar"] floating disable
+for_window [class="Thunar"] border pixel 0
+for_window [class="Thunar"] resize set 60 ppt 100 ppt
+
+for_window [title="kiosk-terminal"] floating disable
+for_window [title="kiosk-terminal"] border pixel 0
+for_window [title="kiosk-terminal"] resize set 40 ppt 100 ppt
+
+# -------------------------------------------------------------
+# Намеренно НЕ определяем:
+#   - bindsym $mod+shift+q (kill)      -> нет хоткея на закрытие
+#   - mode "resize" и его бинды        -> нет хоткея на ресайз
+# Это не запрещает закрытие/ресайз технически (через i3-msg
+# извне это всё равно возможно), но убирает обычные пути юзера.
+# -------------------------------------------------------------
+
+# Базовые бинды, которые имеет смысл оставить (навигация, без выхода)
+bindsym $mod+d exec --no-startup-id dmenu_run
+
+# Layout: горизонтальное разделение по умолчанию
+default_orientation horizontal
+workspace_layout default
+
+# Убираем декорации чтобы 60/40 было визуально точным
+# (gaps inner/outer — это директивы i3-gaps, в стандартном i3 их нет,
+# поэтому убраны; обычный border pixel 0 достаточен для нашей задачи)
+default_border pixel 0
+default_floating_border pixel 1
+
+# Полноэкранный режим для workspace, где живут наши окна
+workspace 1 output primary
