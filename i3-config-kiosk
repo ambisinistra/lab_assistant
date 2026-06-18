@@ -9,8 +9,17 @@ font pango:DejaVu Sans Mono 10
 # -------------------------------------------------------------
 # Автозапуск двух нужных приложений при старте i3
 # -------------------------------------------------------------
+#exec --no-startup-id thunar
+#exec --no-startup-id xterm -bg black -fg green -title kiosk-terminal
+
+# 1. Запуск event_sensor.py в фоновом режиме (без графики)
+exec --no-startup-id python /home/alex-head/git/lab_assistant/event_sensor.py
+
+# 2. Запуск Thunar (остается без изменений)
 exec --no-startup-id thunar
-exec --no-startup-id xterm -bg black -fg green -title kiosk-terminal
+
+# 3. Запуск lab_agent.py внутри окна xterm
+exec --no-startup-id xterm -bg black -fg green -title kiosk-terminal -e "python /home/alex-head/git/lab_assistant/lab_agent.py"
 
 # -------------------------------------------------------------
 # Правила окон: ВСЁ floating по умолчанию,
@@ -57,3 +66,8 @@ default_floating_border pixel 1
 
 # Полноэкранный режим для workspace, где живут наши окна
 workspace 1 output primary
+
+
+
+# DELETE ON PROD
+bindsym $mod+Return exec --no-startup-id xterm
