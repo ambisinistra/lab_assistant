@@ -32,9 +32,13 @@ import zmq.asyncio
 ZMQ_ADDRESS   = "tcp://127.0.0.1:5555"   # change to "ipc:///tmp/agent.ipc" for UNIX socket
 POLL_WINDOW_S = 2    # active-window poll interval
 POLL_PROC_S   = 3    # new-process poll interval
+ONLY_FILES    = True # Set to True to ignore browser tabs and ONLY track files
+PROC_ONLY     = True # Set to True to ONLY track background processes and ignore active windows
 
 # Extensions → kind
 EXT_MAP: dict[str, str] = {
+    # documents
+    ".pdf": "document_file",
     # text
     ".txt": "text_file", ".md": "text_file", ".rst": "text_file",
     ".py": "text_file",  ".js": "text_file", ".ts": "text_file",
@@ -59,7 +63,7 @@ BROWSER_NAMES = {
 
 # ── Types ─────────────────────────────────────────────────────────────────────
 
-Kind   = Literal["browser_tab", "text_file", "image_file", "video_file"]
+Kind   = Literal["browser_tab", "text_file", "image_file", "video_file", "document_file"]
 Action = Literal["open", "closed"]
 
 class Event(TypedDict):
@@ -101,13 +105,15 @@ def classify_window(title: str) -> Kind | None:
     """
     low = title.lower()
 
-    # Browser heuristic: title ends with " — Firefox", " - Chromium", etc.
-    browser_suffixes = (
-        "firefox", "chromium", "chrome", "brave", "opera", "vivaldi", "epiphany"
-    )
-    if any(low.endswith(s) or f" — {s}" in low or f" - {s}" in low
-           for s in browser_suffixes):
-        return "browser_tab"
+    # Skip browser title checks if we only care about files
+    if not ONLY_FILES:
+        # Browser heuristic: title ends with " — Firefox", " - Chromium", etc.
+        browser_suffixes = (
+            "firefox", "chromium", "chrome", "brave", "opera", "vivaldi", "epiphany"
+        )
+        if any(low.endswith(s) or f" — {s}" in low or f" - {s}" in low
+               for s in browser_suffixes):
+            return "browser_tab"
 
     # File extension in title (e.g. Evince, eog, VLC, gedit, VSCode)
     for ext, kind in EXT_MAP.items():
@@ -194,8 +200,8 @@ async def track_new_processes(pub: ZMQPublisher) -> None:
                 except (psutil.NoSuchProcess, psutil.AccessDenied):
                     continue
 
-                # Browser started
-                if is_browser_proc(name):
+                # Browser started (Skip if ONLY_FILES is True)
+                if not ONLY_FILES and is_browser_proc(name):
                     await pub.send(Event(
                         kind="browser_tab",
                         action="open",
@@ -227,10 +233,14 @@ async def main() -> None:
     pub = ZMQPublisher(ZMQ_ADDRESS)
     print("Agent started. Ctrl-C to stop.\n")
     try:
-        await asyncio.gather(
-            track_active_window(pub),
-            track_new_processes(pub),
-        )
+        # Always run the process tracker
+        tasks = [track_new_processes(pub)]
+        
+        # Only run the active window tracker if PROC_ONLY is False
+        if not PROC_ONLY:
+            tasks.append(track_active_window(pub))
+            
+        await asyncio.gather(*tasks)
     finally:
         pub.close()
 
